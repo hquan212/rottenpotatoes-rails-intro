@@ -11,14 +11,57 @@ class MoviesController < ApplicationController
   end
 
   def index
-    if params[:order_by_title]
-      @movies = Movie.all.order(:title)
-      @order_by_title = true
-    elsif params[:order_by_release_date]
-      @movies = Movie.all.order(:release_date)
-      @order_by_release_date = true
+    redirect = false
+    redirect_params = Hash.new
+    sort = params[:sort]
+    if params[:title]
+      redirect_params[:title] = true
+      @movies = Movie.order(:title)
+      session[:title] = true
+      session[:release_date] = false
+    elsif params[:release_date]
+      redirect_params[:release_date] = true
+      @movies = Movie.order(:release_date)
+      session[:title] = false
+      session[:release_date] = true
+    elsif session[:release_date]
+      redirect = true
+      redirect_params[:release_date] = true
+      session[:title] = false
+      session[:release_date] = true
+    elsif session[:title]
+      redirect = true
+      redirect_params[:title] = true
+      session[:title] = true
+      session[:release_date] = false
     else
       @movies = Movie.all
+    end
+    @all_ratings = Movie.get_appropriate_rating
+    @param_ratings = @all_ratings.select do |rating|
+        params["rating_"+rating]
+      end
+    if not @param_ratings.empty?
+      @all_ratings.each do |rating|
+        session["rating_"+rating] = params["rating_"+rating]
+      end
+    else 
+      redirect = true
+    end
+    @selected_ratings = @all_ratings.select do |rating|
+      session["rating_"+rating]
+    end
+    if(@selected_ratings.empty?)
+      redirect = true
+      @selected_ratings = @all_ratings
+    end
+    @selected_ratings.each do |rating|
+      redirect_params["rating_"+rating] = true
+    end
+    if redirect
+      redirect_to movies_path(redirect_params)
+    else
+      @movies = @movies.where("rating IN (?)", @selected_ratings)
     end
   end
 
