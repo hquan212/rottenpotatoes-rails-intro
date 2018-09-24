@@ -13,7 +13,6 @@ class MoviesController < ApplicationController
   def index
     redirect = false
     redirect_params = Hash.new
-    sort = params[:sort]
     if params[:title]
       redirect_params[:title] = true
       @movies = Movie.order(:title)
